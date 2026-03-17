@@ -1,1 +1,201 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>横スクロールゲーム進化版</title>
 
+<style>
+body{
+    margin:0;
+    overflow:hidden;
+    background:#87CEEB;
+}
+
+#game{
+    position:relative;
+    width:800px;
+    height:400px;
+    margin:20px auto;
+    background:linear-gradient(#87CEEB 70%, #3cb371 70%);
+    overflow:hidden;
+    border:4px solid black;
+}
+
+#player{
+    position:absolute;
+    width:40px;
+    height:40px;
+    background:red;
+    bottom:80px;
+    left:50px;
+}
+
+.enemy{
+    position:absolute;
+    width:40px;
+    height:40px;
+    background:purple;
+    bottom:80px;
+}
+
+.coin{
+    position:absolute;
+    width:25px;
+    height:25px;
+    background:gold;
+    border-radius:50%;
+}
+
+#goal{
+    position:absolute;
+    width:40px;
+    height:80px;
+    background:gold;
+    bottom:80px;
+    left:2600px;
+}
+
+#score{
+    position:absolute;
+    top:10px;
+    left:10px;
+    font-size:24px;
+    color:black;
+    background:white;
+    padding:5px 10px;
+}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+<div id="score">🪙0</div>
+
+<div id="player"></div>
+
+<div class="enemy" style="left:700px"></div>
+<div class="enemy" style="left:1400px"></div>
+<div class="enemy" style="left:2000px"></div>
+
+<div class="coin" style="left:500px; bottom:150px"></div>
+<div class="coin" style="left:900px; bottom:150px"></div>
+<div class="coin" style="left:1700px; bottom:150px"></div>
+<div class="coin" style="left:2300px; bottom:150px"></div>
+
+<div id="goal"></div>
+
+</div>
+
+<script>
+
+const player = document.getElementById("player");
+const goal = document.getElementById("goal");
+const scoreUI = document.getElementById("score");
+
+let score = 0;
+
+let x = 50;
+let y = 0;
+let vy = 0;
+
+let camera = 0;
+
+let left = false;
+let right = false;
+let jump = false;
+
+document.addEventListener("keydown",e=>{
+    if(e.key==="ArrowLeft") left=true;
+    if(e.key==="ArrowRight") right=true;
+    if(e.key===" ") jump=true;
+});
+
+document.addEventListener("keyup",e=>{
+    if(e.key==="ArrowLeft") left=false;
+    if(e.key==="ArrowRight") right=false;
+});
+
+function hit(a,b){
+    return !(
+        a.right < b.left ||
+        a.left > b.right ||
+        a.bottom < b.top ||
+        a.top > b.bottom
+    );
+}
+
+function gameLoop(){
+
+    if(right) x+=5;
+    if(left) x-=5;
+
+    if(jump && y===0){
+        vy = 15;
+    }
+    jump=false;
+
+    vy -= 0.8;
+    y += vy;
+
+    if(y < 0){
+        y = 0;
+        vy = 0;
+    }
+
+    camera = x - 200;
+    if(camera < 0) camera = 0;
+
+    player.style.left = (x - camera) + "px";
+    player.style.bottom = (80 + y) + "px";
+
+    let pRect = player.getBoundingClientRect();
+
+    // コイン取得
+    document.querySelectorAll(".coin").forEach(c=>{
+        let rect = c.getBoundingClientRect();
+        if(hit(pRect,rect)){
+            c.remove();
+            score++;
+            scoreUI.innerText = "🪙" + score;
+        }
+        c.style.transform = `translateX(${-camera}px)`;
+    });
+
+    // 敵判定
+    document.querySelectorAll(".enemy").forEach(e=>{
+        let rect = e.getBoundingClientRect();
+
+        if(hit(pRect,rect)){
+
+            // 上から踏んだ
+            if(vy < 0 && pRect.bottom < rect.top + 20){
+                e.remove();
+                vy = 12;
+            }else{
+                alert("敵に当たった💀");
+                location.reload();
+            }
+
+        }
+
+        e.style.transform = `translateX(${-camera}px)`;
+    });
+
+    goal.style.transform = `translateX(${-camera}px)`;
+
+    if(x > 2600){
+        alert("クリア！！🏁✨ コイン：" + score);
+        location.reload();
+    }
+
+    requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
+
+</script>
+
+</body>
+</html>
