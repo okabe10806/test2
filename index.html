@@ -2,23 +2,25 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>本格アクションゲーム</title>
+<title>どうぶつの森風ゲーム</title>
 
 <style>
+
 body{
 margin:0;
 overflow:hidden;
 background:#87CEEB;
+font-family:sans-serif;
 }
 
 #game{
 position:relative;
 width:800px;
-height:400px;
+height:500px;
 margin:20px auto;
-background:linear-gradient(#87CEEB 70%, #3cb371 70%);
+background:#7ec850;
+border:5px solid black;
 overflow:hidden;
-border:4px solid black;
 }
 
 #player{
@@ -26,50 +28,32 @@ position:absolute;
 width:40px;
 height:40px;
 background:red;
-bottom:80px;
-left:50px;
+left:100px;
+top:200px;
+border-radius:10px;
 }
 
-.platform{
-position:absolute;
-width:140px;
-height:20px;
-background:#8B4513;
-}
-
-.enemy{
+.npc{
 position:absolute;
 width:40px;
 height:40px;
-background:purple;
-bottom:80px;
+background:orange;
+border-radius:10px;
 }
 
-.coin{
+#dialog{
 position:absolute;
-width:25px;
-height:25px;
-background:gold;
-border-radius:50%;
+bottom:0;
+left:0;
+width:100%;
+height:120px;
+background:rgba(0,0,0,0.8);
+color:white;
+font-size:22px;
+padding:20px;
+display:none;
 }
 
-#goal{
-position:absolute;
-width:40px;
-height:80px;
-background:gold;
-bottom:80px;
-left:3200px;
-}
-
-#score{
-position:absolute;
-top:10px;
-left:10px;
-font-size:24px;
-background:white;
-padding:5px;
-}
 </style>
 </head>
 
@@ -77,66 +61,42 @@ padding:5px;
 
 <div id="game">
 
-<div id="score">🪙0</div>
-
 <div id="player"></div>
 
-<!-- 足場 -->
-<div class="platform" style="left:600px; bottom:160px"></div>
-<div class="platform" style="left:900px; bottom:220px"></div>
-<div class="platform" style="left:1300px; bottom:180px"></div>
-<div class="platform" style="left:1700px; bottom:240px"></div>
-<div class="platform" style="left:2100px; bottom:200px"></div>
+<div class="npc" data-text="こんにちは！いい天気だね！" style="left:400px;top:150px"></div>
+<div class="npc" data-text="魚をつりたいな〜" style="left:650px;top:300px"></div>
+<div class="npc" data-text="キミは新しい住民？" style="left:1000px;top:200px"></div>
 
-<!-- 敵 -->
-<div class="enemy" style="left:800px"></div>
-<div class="enemy" style="left:1500px"></div>
-<div class="enemy" style="left:2300px"></div>
-
-<!-- コイン -->
-<div class="coin" style="left:620px; bottom:200px"></div>
-<div class="coin" style="left:920px; bottom:260px"></div>
-<div class="coin" style="left:1320px; bottom:220px"></div>
-<div class="coin" style="left:1720px; bottom:280px"></div>
-<div class="coin" style="left:2120px; bottom:240px"></div>
-
-<div id="goal"></div>
+<div id="dialog"></div>
 
 </div>
 
 <script>
 
 const player=document.getElementById("player");
-const scoreUI=document.getElementById("score");
+const dialog=document.getElementById("dialog");
 
-let score=0;
-
-let x=50;
-let y=0;
-let vy=0;
+let x=100;
+let y=200;
 
 let camera=0;
 
-let left=false;
-let right=false;
-let jump=false;
-let jumpCount=0;
-
-// 敵データ
-let enemies=[...document.querySelectorAll(".enemy")].map(e=>({
-el:e,
-x:parseInt(e.style.left),
-dir:1,
-range:120
-}));
+let up=false,down=false,left=false,right=false;
 
 document.addEventListener("keydown",e=>{
+if(e.key==="ArrowUp") up=true;
+if(e.key==="ArrowDown") down=true;
 if(e.key==="ArrowLeft") left=true;
 if(e.key==="ArrowRight") right=true;
-if(e.key===" ") jump=true;
+
+if(e.key===" "){
+talk();
+}
 });
 
 document.addEventListener("keyup",e=>{
+if(e.key==="ArrowUp") up=false;
+if(e.key==="ArrowDown") down=false;
 if(e.key==="ArrowLeft") left=false;
 if(e.key==="ArrowRight") right=false;
 });
@@ -145,89 +105,39 @@ function hit(a,b){
 return !(a.right<b.left||a.left>b.right||a.bottom<b.top||a.top>b.bottom);
 }
 
-function loop(){
-
-if(right) x+=5;
-if(left) x-=5;
-
-if(jump && jumpCount<2){
-vy=15;
-jumpCount++;
-}
-jump=false;
-
-vy-=0.8;
-y+=vy;
-
-camera=x-200;
-if(camera<0) camera=0;
-
-player.style.left=(x-camera)+"px";
-player.style.bottom=(80+y)+"px";
+function talk(){
 
 let pRect=player.getBoundingClientRect();
 
-// 足場判定
-document.querySelectorAll(".platform").forEach(p=>{
-let rect=p.getBoundingClientRect();
+document.querySelectorAll(".npc").forEach(n=>{
 
-if(hit(pRect,rect) && vy<=0 && pRect.bottom<rect.top+20){
-y = rect.top - 80 - 40 + window.scrollY;
-vy=0;
-jumpCount=0;
-}
-p.style.transform=`translateX(${-camera}px)`;
-});
-
-if(y<0){
-y=0;
-vy=0;
-jumpCount=0;
-}
-
-// コイン
-document.querySelectorAll(".coin").forEach(c=>{
-let rect=c.getBoundingClientRect();
-if(hit(pRect,rect)){
-c.remove();
-score++;
-scoreUI.innerText="🪙"+score;
-}
-c.style.transform=`translateX(${-camera}px)`;
-});
-
-// 敵移動＋判定
-enemies.forEach(e=>{
-
-e.x += 2 * e.dir;
-
-if(e.x > parseInt(e.el.style.left)+e.range) e.dir=-1;
-if(e.x < parseInt(e.el.style.left)-e.range) e.dir=1;
-
-e.el.style.left=e.x+"px";
-e.el.style.transform=`translateX(${-camera}px)`;
-
-let rect=e.el.getBoundingClientRect();
+let rect=n.getBoundingClientRect();
 
 if(hit(pRect,rect)){
-if(vy<0 && pRect.bottom<rect.top+20){
-e.el.remove();
-vy=12;
-}else{
-alert("ゲームオーバー💀");
-location.reload();
-}
+dialog.style.display="block";
+dialog.innerText=n.dataset.text;
 }
 
 });
 
-// ゴール
-document.getElementById("goal").style.transform=`translateX(${-camera}px)`;
-
-if(x>3200){
-alert("クリア🏁 コイン:"+score);
-location.reload();
 }
+
+function loop(){
+
+if(up) y-=3;
+if(down) y+=3;
+if(right) x+=3;
+if(left) x-=3;
+
+camera=x-300;
+if(camera<0) camera=0;
+
+player.style.left=(x-camera)+"px";
+player.style.top=y+"px";
+
+document.querySelectorAll(".npc").forEach(n=>{
+n.style.transform=`translateX(${-camera}px)`;
+});
 
 requestAnimationFrame(loop);
 }
